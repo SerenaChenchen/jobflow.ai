@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobFlow AI - 碩一商管學生 AI 求職自動化工作流</title>
+  <meta name="description" content="專為忙碌的碩一商管學生設計的客製化求職管理與 AI 履歷面試輔助工具">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar">
+      <div class="logo-container">
+        <div class="logo-icon">
+          <i data-lucide="sparkles" style="color: #fff;"></i>
+        </div>
+        <div class="logo-text">
+          <h1>JobFlow AI</h1>
+          <span>Graduate Edition v2</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-item active" onclick="switchTab('dashboard')" id="nav-dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>工作台首頁</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('tracker')" id="nav-tracker">
+          <i data-lucide="kanban-square"></i>
+          <span>職缺追蹤板</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('experience')" id="nav-experience">
+          <i data-lucide="folder-git-2"></i>
+          <span>履歷經歷池</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('generator')" id="nav-generator">
+          <i data-lucide="wand-2"></i>
+          <span>AI 客製生成</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('interview')" id="nav-interview">
+          <i data-lucide="message-square-code"></i>
+          <span>模擬面試室</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('settings')" id="nav-settings">
+          <i data-lucide="settings"></i>
+          <span>系統設定</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-profile">
+        <div class="profile-avatar">碩一</div>
+        <div class="profile-info">
+          <span class="profile-name">商管研究生</span>
+          <span class="profile-role">探索海投期</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main id="main-viewport">
+      <!-- Top header bar -->
+      <header class="top-header">
+        <div class="header-title-area">
+          <h2 id="view-title">工作台首頁</h2>
+          <p id="view-desc">掌握自動化職缺推送、即時截止提醒與求職進度</p>
+        </div>
+        <div class="header-actions">
+          <!-- Crawler sync button removed -->
+          <button class="btn btn-primary" onclick="switchTab('generator')">
+            <i data-lucide="wand-2"></i>
+            <span>開始客製履歷</span>
+          </button>
+          <button class="btn btn-secondary" onclick="fetchLiveJobs()" id="fetch-jobs-btn">
+            <i data-lucide="search"></i>
+            <span>抓取最新職缺</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ==========================================
+           TAB 1: DASHBOARD VIEW
+           ========================================== -->
+      <div id="dashboard-view" class="screen-view active">
+        <!-- Stats Summary Card Row -->
+        <div class="stats-grid">
+          <div class="glass-panel stat-card">
+            <div class="stat-icon purple">
+              <i data-lucide="compass"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-number" id="stat-total-jobs">0</span>
+              <span class="stat-label">已追蹤職缺</span>
+            </div>
+          </div>
+          <div class="glass-panel stat-card">
+            <div class="stat-icon teal">
+              <i data-lucide="file-check-2"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-number" id="stat-tailored-resumes">0</span>
+              <span class="stat-label">已生成客製履歷</span>
+            </div>
+          </div>
+          <div class="glass-panel stat-card">
+            <div class="stat-icon pink">
+              <i data-lucide="award"></i>
+            </div>
+            <div class="stat-details">
+              <span class="stat-number" id="stat-mock-interviews">0</span>
+              <span class="stat-label">已模擬面試數</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Layout Split -->
+        <div class="dashboard-grid">
+          <!-- Left: Sync status & analytics -->
+          <div class="glass-panel">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="terminal"></i> 職缺爬取與系統日誌</h3>
+              <span class="badge badge-outline">ZDR 零留存模式</span>
+            </div>
+            <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 12px;">
+              根據你在設定中訂閱的關鍵字，系統會自動在後台爬取 104、LinkedIn，並將職缺資訊即時整理。
+            </p>
+            <div class="activity-logs" id="sync-logs-console">
+              <div class="log-entry"><span class="log-timestamp">[10:00:00]</span> 系統就緒。等待人工或定時觸發同步...</div>
+            </div>
+            <div style="margin-top: 16px; display: flex; gap: 10px;">
+              <button class="btn btn-secondary" onclick="clearSyncLogs()">清除日誌</button>
+              <button class="btn btn-primary" onclick="simulateNewJobIncoming()">
+                <i data-lucide="plus-circle"></i> 模擬新職缺發布
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Action items and Deadlines -->
+          <div class="glass-panel">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="clock"></i> 24H 投遞截止警戒</h3>
+            </div>
+            <div class="deadline-reminder-list" id="deadline-list">
+              <!-- Dynamically populated -->
+              <p class="ai-output-placeholder" style="min-height: 120px; font-size: 13px;">目前無即將截止的職缺，安心念書吧！</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 2: JOB TRACKER VIEW
+           ========================================== -->
+      <div id="tracker-view" class="screen-view">
+        <div class="glass-panel">
+          <div class="board-header">
+            <div class="filters-bar">
+              <div class="form-group" style="margin: 0; min-width: 200px;">
+                <input type="text" class="form-control" placeholder="搜尋職缺名稱 / 公司..." id="search-job-input" onkeyup="filterJobs()">
+              </div>
+              <div class="form-group" style="margin: 0; min-width: 150px;">
+                <select class="form-control" id="filter-job-category" onchange="filterJobs()">
+                  <option value="all">所有職位類型</option>
+                  <option value="管顧">管理顧問</option>
+                  <option value="資料分析">資料分析</option>
+                  <option value="AI 產品">AI 產品</option>
+                  <option value="行銷">行銷</option>
+                  <option value="財務">財務</option>
+                  <option value="通用">通用 / 其他</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="openNewJobForm()">
+              <i data-lucide="plus"></i> <span>手動新增職缺</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Kanban Board -->
+        <div class="job-tracker-layout">
+          <div class="kanban-view">
+            <!-- Col 1: 收件箱 / 已追蹤 -->
+            <div class="kanban-column" id="col-inbox">
+              <div class="column-header">
+                <div class="column-title">
+                  <div class="column-dot" style="background-color: var(--status-inbox);"></div>
+                  <span>收件箱 / 新職缺</span>
+                </div>
+                <span class="column-count" id="count-inbox">0</span>
+              </div>
+              <div class="kanban-cards-area" id="cards-inbox" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <!-- Col 2: 履歷客製中 -->
+            <div class="kanban-column" id="col-tailoring">
+              <div class="column-header">
+                <div class="column-title">
+                  <div class="column-dot" style="background-color: var(--status-tailoring);"></div>
+                  <span>客製調整中</span>
+                </div>
+                <span class="column-count" id="count-tailoring">0</span>
+              </div>
+              <div class="kanban-cards-area" id="cards-tailoring" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <!-- Col 3: 準備投遞 -->
+            <div class="kanban-column" id="col-ready">
+              <div class="column-header">
+                <div class="column-title">
+                  <div class="column-dot" style="background-color: var(--status-ready);"></div>
+                  <span>準備就緒</span>
+                </div>
+                <span class="column-count" id="count-ready">0</span>
+              </div>
+              <div class="kanban-cards-area" id="cards-ready" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <!-- Col 4: 已投遞 -->
+            <div class="kanban-column" id="col-applied">
+              <div class="column-header">
+                <div class="column-title">
+                  <div class="column-dot" style="background-color: var(--status-applied);"></div>
+                  <span>已投遞</span>
+                </div>
+                <span class="column-count" id="count-applied">0</span>
+              </div>
+              <div class="kanban-cards-area" id="cards-applied" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+
+            <!-- Col 5: 面試中 -->
+            <div class="kanban-column" id="col-interviewing">
+              <div class="column-header">
+                <div class="column-title">
+                  <div class="column-dot" style="background-color: var(--status-interviewing);"></div>
+                  <span>面試關卡中</span>
+                </div>
+                <span class="column-count" id="count-interviewing">0</span>
+              </div>
+              <div class="kanban-cards-area" id="cards-interviewing" style="display:flex; flex-direction:column; gap:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 3: EXPERIENCE POOL VIEW
+           ========================================== -->
+      <div id="experience-view" class="screen-view">
+        <div class="experience-layout">
+          <!-- Left: Experiences list -->
+          <div class="glass-panel experience-list-panel">
+            <div class="panel-title-bar" style="margin-bottom:0px; border:none; padding-bottom:0px;">
+              <h3>經歷庫清單</h3>
+              <button class="btn btn-icon" onclick="startNewExperience()" title="新增經歷">
+                <i data-lucide="plus"></i>
+              </button>
+            </div>
+                        <div class="upload-panel glass-panel" style="margin-bottom:16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px;">
+              <input type="file" id="resume-upload" accept=".pdf,.txt" />
+              <button class="btn btn-primary" onclick="handleResumeUpload()">上傳履歷</button>
+              <p id="upload-status" style="margin:0; font-size:12px; color:var(--text-secondary);"></p>
+            </div>
+<p style="font-size:12px; color:var(--text-secondary);">將你所有專案、實習、社團經歷拆解成 STAR 模組，AI 會自動從中挑選素材組裝。</p>
+            <div class="experience-list-container" id="experience-list-nav">
+              <!-- Dynamically populated buttons -->
+            </div>
+          </div>
+
+          <!-- Right: Experience Editor Form -->
+          <div class="glass-panel exp-editor-panel">
+            <div class="exp-editor-header">
+              <div>
+                <h3 id="editor-action-title">編輯經歷描述</h3>
+                <p style="font-size:12px; color:var(--text-secondary); margin-top:2px;" id="editor-action-subtitle">修改後按「儲存經歷」更新經歷池</p>
+              </div>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-secondary" onclick="deleteActiveExperience()" id="delete-exp-btn" style="display:none; color: var(--accent-rose);">刪除</button>
+                <button class="btn btn-primary" onclick="saveExperienceForm()">儲存經歷</button>
+              </div>
+            </div>
+
+            <form id="experience-form" onsubmit="event.preventDefault();">
+              <input type="hidden" id="exp-id-input">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">經歷/專案名稱 *</label>
+                  <input type="text" class="form-control" id="exp-title-input" required placeholder="如：McKinsey 顧問大賽、電商平台數據分析">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">組織/公司單位 *</label>
+                  <input type="text" class="form-control" id="exp-org-input" required placeholder="如：國立台灣大學、台積電">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">擔任角色 *</label>
+                  <input type="text" class="form-control" id="exp-role-input" required placeholder="如：隊長、資料分析實習生、PM">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">時期 / 時間</label>
+                  <input type="text" class="form-control" id="exp-period-input" placeholder="如：2026.03 - 2026.06">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">適合的職缺領域分類（主標籤）</label>
+                  <select class="form-control" id="exp-tag-input">
+                    <option value="通用">通用 / 跨領域</option>
+                    <option value="管顧">管理顧問 (強調結構思考、領導)</option>
+                    <option value="資料分析">資料分析 (強調SQL/Python、量化指標)</option>
+                    <option value="AI 產品">AI 產品 (強調產品Sense、技術理解)</option>
+                    <option value="行銷">行銷 (強調市場洞察、行銷科技)</option>
+                    <option value="財務">財務 (強調財務模型、分析)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">關鍵技能 (半形逗號分隔)</label>
+                  <input type="text" class="form-control" id="exp-skills-input" placeholder="如：SQL, MECE, Python, 需求分析">
+                </div>
+              </div>
+
+              <!-- STAR Model Inputs -->
+              <div class="form-group" style="margin-top:16px;">
+                <label class="form-label" style="display:flex; justify-content:space-between;">
+                  <span>經歷細節 (以 STAR 架構拆解)</span>
+                  <span style="font-weight:normal; font-size:11px; color:var(--text-muted);">STAR 能讓 AI 精確提取細節進行 80% 客製化</span>
+                </label>
+                
+                <div class="star-section">
+                  <div class="star-input-group">
+                    <span class="star-label-badge star-label-s">Situation<br>情境</span>
+                    <textarea class="form-control" id="exp-star-s" placeholder="遭遇什麼背景或挑戰？（如：某產品流量下滑 20%...）"></textarea>
+                  </div>
+                  <div class="star-input-group">
+                    <span class="star-label-badge star-label-t">Task<br>任務</span>
+                    <textarea class="form-control" id="exp-star-t" placeholder="你需要達成的目標是什麼？（如：負責找出原因並制定改善計畫...）"></textarea>
+                  </div>
+                  <div class="star-input-group">
+                    <span class="star-label-badge star-label-a">Action<br>行動</span>
+                    <textarea class="form-control" id="exp-star-a" placeholder="你具體採取了什麼策略、分析或工具？（如：使用 SQL 撈取歷年訂單，並使用 MECE 拆解三個核心流失原因...）"></textarea>
+                  </div>
+                  <div class="star-input-group">
+                    <span class="star-label-badge star-label-r">Result<br>結果</span>
+                    <textarea class="form-control" id="exp-star-r" placeholder="最終取得什麼量化成果？（如：成功召回 15% 流失客群，使整體轉換率提升 3%...）"></textarea>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 4: AI GENERATOR WORKSPACE VIEW
+           ========================================== -->
+      <div id="generator-view" class="screen-view">
+        <div class="ai-workspace-layout">
+          <!-- Left Panel: Context Selector & JD Display -->
+          <div class="glass-panel">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="file-text"></i> 第一步：指定投遞職缺與分析 JD</h3>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">選擇目標職缺</label>
+              <div class="jd-selector-group">
+                <select class="form-control" id="generator-job-select" onchange="loadJobToGenerator()" style="flex-grow:1;">
+                  <option value="">-- 請選擇一個職缺 --</option>
+                  <!-- Dynamically populated with active jobs -->
+                </select>
+                <button class="btn btn-secondary" onclick="switchTab('tracker')">新增職缺</button>
+              </div>
+            </div>
+
+            <!-- Auto identified details -->
+            <div class="form-row" id="generator-job-meta" style="display:none; margin-bottom:12px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">AI 辨識職缺領域</label>
+                <select class="form-control" id="generator-job-cat-override" onchange="onGeneratorCategoryOverride()">
+                  <option value="管顧">管理顧問</option>
+                  <option value="資料分析">資料分析</option>
+                  <option value="AI 產品">AI 產品</option>
+                  <option value="行銷">行銷</option>
+                  <option value="財務">財務</option>
+                  <option value="通用">通用 / 其他</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">JD 關鍵字</label>
+                <div id="generator-job-keywords" style="display:flex; flex-wrap:wrap; gap:4px; margin-top:6px;">
+                  <!-- Spans of keyword badges -->
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">職缺描述 (Job Description)</label>
+              <div class="jd-box-display" id="generator-jd-display">選擇職缺後，系統將自動解析 JD 的能力訴求。</div>
+            </div>
+
+            <!-- Selecting material from experience pool -->
+            <div class="form-group" style="margin-top:20px;">
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>第二步：選擇經歷素材池 (STAR)</span>
+                <span style="font-size:11px; font-weight:normal; color:var(--text-muted);" id="auto-select-indicator">AI 已自動為您匹配最相關素材</span>
+              </label>
+              <div class="experience-selector-list" id="generator-experience-selector">
+                <!-- Dynamically populated checkboxes -->
+                <p class="ai-output-placeholder" style="min-height: 100px; font-size:12px;">請先選擇職缺，或到「履歷經歷池」新增經歷素材。</p>
+              </div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+              <button class="btn btn-primary" id="generate-doc-btn" onclick="triggerAiGeneration()" disabled style="width: 100%; height:45px;">
+                <i data-lucide="cpu"></i> <span>生成客製化履歷建議與 Cover Letter</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Panel: Generated Output -->
+          <div class="glass-panel" style="display: flex; flex-direction: column;">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="sparkles"></i> 第三步：AI 客製化初稿生成區</h3>
+              <div class="badge badge-status-ready" id="model-badge">等待生成</div>
+            </div>
+
+            <!-- View Tabs for results -->
+            <div class="view-tabs">
+              <button class="view-tab-btn active" id="btn-output-resume" onclick="switchOutputTab('resume')">履歷優化建議</button>
+              <button class="view-tab-btn" id="btn-output-cl" onclick="switchOutputTab('cl')">客製 Cover Letter (中/英)</button>
+            </div>
+
+            <!-- Resume Output Area -->
+            <div id="output-resume-container" class="ai-results-tabs-content" style="flex-grow:1;">
+              <div class="ai-output-box" id="output-resume-content">
+                <div class="ai-output-placeholder">
+                  <i data-lucide="wand-2"></i>
+                  <p>在左側選擇一個職缺與經歷素材，然後點擊「生成」按鈕。<br>系統將根據該職位領域的能力訴求，提供逐條經歷的 STAR 修正建議與強調關鍵字。</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cover Letter Output Area -->
+            <div id="output-cl-container" class="ai-results-tabs-content" style="display:none; flex-grow:1;">
+              <div class="ai-output-box" id="output-cl-content">
+                <div class="ai-output-placeholder">
+                  <i data-lucide="file-check"></i>
+                  <p>自薦信 (Cover Letter) 會在您點擊生成後出現在此處，包含貼切的開場白與將經歷無縫串接至 JD 痛點的論述結構。</p>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end;">
+              <button class="btn btn-secondary" id="copy-output-btn" onclick="copyActiveOutput()" disabled>
+                <i data-lucide="copy"></i> 複製內容
+              </button>
+              <button class="btn btn-secondary" id="edit-output-btn" onclick="toggleEditOutput()" disabled>
+                <i data-lucide="edit-3"></i> 編輯初稿
+              </button>
+              <button class="btn btn-accent-teal" id="save-output-btn" onclick="markJobAsPrepared()" disabled>
+                <i data-lucide="check-circle-2"></i> 儲存並標記為「準備就緒」
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 5: MOCK INTERVIEW VIEW
+           ========================================== -->
+      <div id="interview-view" class="screen-view">
+        <div class="interview-layout">
+          <!-- Left: Questions Sidebar -->
+          <div class="glass-panel">
+            <div class="panel-title-bar" style="margin-bottom:0px; border:none; padding-bottom:0px;">
+              <h3>模擬面試對象</h3>
+            </div>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:12px;">選擇一個已儲存的職缺，系統會自動依其領域生成針對性模擬考題。</p>
+            
+            <div class="form-group">
+              <select class="form-control" id="interview-job-select" onchange="loadJobForInterview()">
+                <option value="">-- 請選擇一個職缺 --</option>
+                <!-- Dynamically populated with active jobs -->
+              </select>
+            </div>
+
+            <div style="margin-top: 16px;">
+              <h4 style="font-size:13px; font-weight:700; color:var(--text-secondary); margin-bottom:8px;" id="q-list-title">面試題庫</h4>
+              <div id="interview-questions-list" style="max-height:400px; overflow-y:auto;">
+                <p class="ai-output-placeholder" style="min-height: 100px; font-size:12px;">請先在上方選擇面試職缺。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Chat Workspace -->
+          <div class="chat-container-box">
+            <!-- Chat Header -->
+            <div class="chat-header-bar">
+              <div class="chat-header-info">
+                <h4 id="chat-session-title">AI 模擬面試助理</h4>
+                <p id="chat-session-desc">請在左側選擇一個問題以開啟文字模擬面試</p>
+              </div>
+              <div id="chat-session-status">
+                <span class="badge badge-outline">準備就緒</span>
+              </div>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div class="chat-messages-area" id="chat-messages-container">
+              <div class="ai-output-placeholder" style="margin: auto;">
+                <i data-lucide="message-square" style="width: 48px; height: 48px; opacity:0.1; margin-bottom:12px;"></i>
+                <h5>歡迎使用碎片化模擬面試</h5>
+                <p style="max-width:320px; font-size:12.5px; color:var(--text-muted); margin-top:4px;">
+                  針對管顧職缺提供 Case 面試，資料分析職位偏向 SQL/邏輯與量化成果，AI 產品則偏向產品思維。點擊左側問題即可作答！
+                </p>
+              </div>
+            </div>
+
+            <!-- Interactive Answer Input -->
+            <div class="chat-input-bar">
+              <textarea id="candidate-answer-input" disabled placeholder="請選擇左側問題後，在此處鍵入您的回答，完成後點擊提交。建議使用 STAR 法回覆..."></textarea>
+              <button class="btn btn-primary" id="submit-answer-btn" disabled onclick="submitCandidateAnswer()">
+                <i data-lucide="send"></i>
+                <span>提交作答</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 6: SETTINGS VIEW
+           ========================================== -->
+      <div id="settings-view" class="screen-view">
+        <div class="settings-grid-layout">
+          <!-- Column 1: API & Keywords -->
+          <div class="glass-panel">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="key-round"></i> API 金鑰設定 (ZDR 零資料保留)</h3>
+            </div>
+            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:16px;">
+              本產品極度重視隱私，你的經歷與個資絕不上傳第三方伺服器。API 金鑰直接存儲在你的瀏覽器中，由你的網頁直接對接大模型。
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Google AI Studio API Key (Gemini) - 推薦使用</label>
+              <input type="password" class="form-control" id="api-key-gemini" placeholder="AI Studio Key (以 AI_ 或 AIzaSy 開頭)">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Claude API Key (Anthropic)</label>
+              <input type="password" class="form-control" id="api-key-claude" placeholder="sk-ant-...">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">串接層切換模式</label>
+              <select class="form-control" id="api-engine-mode" onchange="onEngineModeChange()">
+                <option value="mock">系統高品質模擬 (免 API Key，極速體驗)</option>
+                <option value="gemini">Google AI Studio (Gemini 1.5 Flash - 即時反應)</option>
+                <option value="claude">Anthropic Claude API (適用深度客製)</option>
+              </select>
+            </div>
+
+            <div class="panel-title-bar" style="margin-top:24px;">
+              <h3><i data-lucide="rss"></i> 職缺爬取關鍵字訂閱</h3>
+            </div>
+            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:12px;">設定你在 104 與 LinkedIn 訂閱的關鍵字，後台爬蟲同步時會抓取此範圍。</p>
+            
+            <div class="keywords-subscription-box">
+              <div class="keyword-inputs-list" id="keywords-list-container">
+                <!-- Dynamically populated rows -->
+              </div>
+              <button class="btn btn-secondary" onclick="addKeywordRow()">
+                <i data-lucide="plus"></i> 新增訂閱關鍵字
+              </button>
+            </div>
+          </div>
+
+          <!-- Column 2: Webhooks & Notifications -->
+          <div class="glass-panel">
+            <div class="panel-title-bar">
+              <h3><i data-lucide="database"></i> 自動化整合</h3>
+            </div>
+            <p style="font-size:12.5px; color:var(--text-secondary); margin-bottom:16px;">支援與 Make.com / n8n 自動化工作流引擎串接。</p>
+
+            <div class="form-group">
+              <label class="form-label">Make / n8n Webhook URL (投遞自動化發送)</label>
+              <input type="url" class="form-control" id="webhook-url" placeholder="https://hooks.make.com/... 或 http://localhost:5678/g/...">
+            </div>
+
+            <div class="panel-title-bar" style="margin-top:24px;">
+              <h3><i data-lucide="bell"></i> 通知提醒設定</h3>
+            </div>
+            <div class="form-group">
+              <label class="form-label">LINE Notify Token (截止前 24H 提醒)</label>
+              <input type="password" class="form-control" id="line-notify-token" placeholder="輸入 LINE 權杖以獲取提醒">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email 提醒信箱</label>
+              <input type="email" class="form-control" id="email-address" placeholder="student@university.edu">
+            </div>
+
+            <div class="panel-title-bar" style="margin-top:24px;">
+              <h3><i data-lucide="shield-alert"></i> 測試與重設</h3>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn btn-accent-teal" onclick="seedDatabase()">
+                <i data-lucide="database-backup"></i> 一鍵匯入 Demo 種子數據
+              </button>
+              <button class="btn btn-secondary" onclick="resetDatabase()" style="color:var(--accent-rose);">
+                <i data-lucide="trash-2"></i> 重置所有數據
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODALS: JOB FORM / DETAIL VIEW
+       ========================================== -->
+  <div class="modal-overlay" id="job-detail-modal">
+    <div class="glass-panel modal-card">
+      <div class="modal-header">
+        <h3 id="modal-job-title">職缺詳細資料</h3>
+        <button class="modal-close-btn" onclick="closeJobModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="job-detail-form" onsubmit="event.preventDefault(); saveJobForm();">
+        <input type="hidden" id="modal-job-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">職缺名稱 *</label>
+            <input type="text" class="form-control" id="modal-job-name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">公司名稱 *</label>
+            <input type="text" class="form-control" id="modal-job-company" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">職位領域分類 *</label>
+            <select class="form-control" id="modal-job-cat">
+              <option value="通用">通用 / 其他</option>
+              <option value="管顧">管理顧問</option>
+              <option value="資料分析">資料分析</option>
+              <option value="AI 產品">AI 產品</option>
+              <option value="行銷">行銷</option>
+              <option value="財務">財務</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">目前狀態 *</label>
+            <select class="form-control" id="modal-job-status">
+              <option value="inbox">收件箱 / 已追蹤</option>
+              <option value="tailoring">客製調整中</option>
+              <option value="ready">準備就緒</option>
+              <option value="applied">已投遞</option>
+              <option value="interviewing">面試關卡中</option>
+              <option value="closed">已結束 (Offer / 婉拒)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">投遞截止日期 *</label>
+            <input type="datetime-local" class="form-control" id="modal-job-deadline" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">來源管道 (104 / LinkedIn / 官網)</label>
+            <input type="text" class="form-control" id="modal-job-source" placeholder="如 104 關鍵字訂閱">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">職缺能力描述 (Job Description - JD) *</label>
+          <textarea class="form-control" id="modal-job-jd" style="min-height: 180px;" required placeholder="請貼上該職缺的職責與能力要求描述..."></textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); padding-top:16px;">
+          <div>
+            <button type="button" class="btn btn-secondary" onclick="triggerWebhookForJob()" id="webhook-trigger-btn" style="display:none;">
+              <i data-lucide="external-link"></i> 觸發 Make/n8n 投遞自動化
+            </button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="button" class="btn btn-secondary" onclick="deleteJobDirect()" id="delete-job-btn" style="color:var(--accent-rose);">刪除職缺</button>
+            <button type="submit" class="btn btn-primary">儲存職缺變更</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODALS: NOTION SYNC RUNNING MODAL
+       ========================================== -->
+<!-- Notion sync modal removed -->
+
+  <!-- ==========================================
+       TOAST NOTIFICATION
+       ========================================== -->
+  <div class="notification-toast" id="system-toast">
+    <div class="toast-icon">
+      <i data-lucide="bell" id="toast-icon-instance"></i>
+    </div>
+    <div class="toast-content">
+      <h5 id="toast-title">通知標題</h5>
+      <p id="toast-body">這是通知訊息內容說明</p>
+    </div>
+  </div>
+
+  <!-- Lucide script CDN & JS initialization -->
+  <script src="job_crawler.js"></script>
+  
+  <script src="app.js"></script>
+</body>
+</html>
